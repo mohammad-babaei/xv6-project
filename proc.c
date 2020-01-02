@@ -89,6 +89,8 @@ found:
   p->state = EMBRYO;
   p->pid = nextpid++;
 
+  p->priority = 60; // initial value for priority
+
   release(&ptable.lock);
 
   // Allocate kernel stack.
@@ -324,36 +326,88 @@ scheduler(void)
 {
   struct proc *p;
   struct cpu *c = mycpu();
+  int prev_p = 200;
   c->proc = 0;
   
   for(;;){
     // Enable interrupts on this processor.
     sti();
 
-    // Loop over process table looking for process to run.
+    // Loop over process table looking for highest priority process to run.
     acquire(&ptable.lock);
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
       if(p->state != RUNNABLE)
         continue;
+      if(p->priority < prev_p){
+          prev_p = p->priority;
+      }
+    }
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+      if(p->state != RUNNABLE || p->priority > prev_p)
+        continue;
+      // cprintf("high priority found id %d and priority %d prev: %d\n", p->pid, p->priority, prev_p);
+      prev_p = p->priority;
 
       // Switch to chosen process.  It is the process's job
       // to release ptable.lock and then reacquire it
       // before jumping back to us.
-      c->proc = p;
-      switchuvm(p);
-      p->state = RUNNING;
 
-      swtch(&(c->scheduler), p->context);
-      switchkvm();
+      // find the process and keep running it till it's done
+      if(p->priority == prev_p){
+        c->proc = p;
+        switchuvm(p);
+        p->state = RUNNING;
 
-      // Process is done running for now.
-      // It should have changed its p->state before coming back.
-      c->proc = 0;
+        swtch(&(c->scheduler), p->context);
+        switchkvm();
+        c->proc = 0;
+      }
     }
     release(&ptable.lock);
 
   }
 }
+
+int set_priority(int *priority, int *pid)
+{
+  struct proc *p;
+  struct proc *to_change;
+  to_change = myproc();
+  int process_found = 0;
+  int old_priority = 0;
+
+  acquire(&ptable.lock);
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+    if(p->pid == *pid)
+    {
+      to_change = p;
+      process_found = 1;
+    }
+  
+  if(process_found)
+  {
+    cprintf("process with given pid is found\n");
+    old_priority = to_change->priority;
+    to_change->priority = *priority;
+    cprintf("setting the priority finished\n");
+    release(&ptable.lock);
+    cprintf("checking if yield is needed\n");
+    if(old_priority > *priority)
+    {
+      cprintf("the process priority has increased so yield is needed\n");
+      yield();
+    }
+    return old_priority;
+  }
+  else
+    cprintf("process with given pid is not found\n");
+  
+  
+  release(&ptable.lock);
+
+  return old_priority;
+}
+
 
 // Enter scheduler.  Must hold only ptable.lock
 // and have changed proc->state. Saves and restores
