@@ -53,6 +53,9 @@ struct proc {
   uint etime;        // Process end time
   uint rtime;        // Process run time
   uint iotime;       // Process io time
+  uint priority;     // the priority queue number (can be 0, 1 and 2)
+  uint wait_for_boost; //the ticks that a process is in third queue (we need it for boost)
+  uint running_ticks_queue; // the run time we use for priority queues 
 };
 
 // Process memory is laid out contiguously, low addresses first:
