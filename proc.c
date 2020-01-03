@@ -428,7 +428,7 @@ scheduler(void)
         {
           p->priority = 1;
           p->running_ticks_queue = 0;
-          cprintf("\ngoing from 1 to 2 pid: %d\n", p->pid);
+          cprintf("\nmoving process with pid: %d from queue 1 to queue 2\n", p->pid);
         }
         continue;
       }
@@ -454,7 +454,7 @@ scheduler(void)
         {
           p->priority = 2;
           p->running_ticks_queue = 0;
-          cprintf("\ngoing from 2 to 3 pid: %d\n", p->pid);
+          cprintf("\nmoving process with pid: %d from queue 2 to queue 3\\n", p->pid);
         }
         continue;
       }
@@ -488,7 +488,7 @@ scheduler(void)
       // if the process is in the third queue for enough time boost it to first queue
       if(waitp->wait_for_boost >= WAITING_THRESHOLD)
       {
-          cprintf("\ngetting boost from 3 to 1, pid: %d\n", waitp->pid);
+          cprintf("\nboosting process with pid: %d from queue 3 to queue 1\n", waitp->pid);
 
         waitp->priority = 0;
         waitp->wait_for_boost = 0;
